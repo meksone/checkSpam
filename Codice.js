@@ -99,15 +99,20 @@ function buildReport_(messagesToNotify) {
 }
 
 function processDeletionRequests_() {
-  GmailApp.search('in:inbox "DELETE SPAM"').forEach(function(thread) {
+  const threads = GmailApp.search('in:inbox "DELETE SPAM"');
+  console.log('processDeletionRequests_: found ' + threads.length + ' thread(s)');
+
+  threads.forEach(function(thread) {
     thread.getMessages().forEach(function(message) {
       // Skip the report itself (not a reply) - its footer text also
       // matches "DELETE SPAM <id>" but it's the instructions, not a command.
       if (message.getSubject() === 'Spam Report') {
+        console.log('Skipping own report email (subject exactly "Spam Report")');
         return;
       }
 
       const matches = message.getPlainBody().match(/DELETE\s+SPAM\s+([A-Za-z0-9_-]+)/gi) || [];
+      console.log('Message "' + message.getSubject() + '" from ' + message.getFrom() + ': ' + matches.length + ' match(es) -> ' + JSON.stringify(matches));
       if (matches.length === 0) {
         return;
       }
@@ -117,6 +122,7 @@ function processDeletionRequests_() {
         try {
           GmailApp.getMessageById(messageId).moveToTrash();
         } catch (error) {
+          console.error('DELETE SPAM failed for id "' + messageId + '": ' + error);
         }
       });
 
