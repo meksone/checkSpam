@@ -1,5 +1,4 @@
 const STATE_KEY = 'spamState';
-const PROCESSED_REPLIES_KEY = 'processedReplies';
 const ALERT_INTERVALS_HOURS = [0, 2, 3, 4];
 
 function checkSpamFolder() {
@@ -48,10 +47,29 @@ function checkSpamFolder() {
       });
     }
 
-    properties.setProperty(STATE_KEY, JSON.stringify(state));
+    saveState_(properties, state);
   } finally {
     lock.releaseLock();
   }
+}
+
+function saveState_(properties, state) {
+  const MAX_BYTES = 8000; // ScriptProperties caps each value at 9KB.
+  let json = JSON.stringify(state);
+
+  if (json.length > MAX_BYTES) {
+    // Drop the least-recently-alerted entries first; they'll just be
+    // re-reported as new on a later run.
+    const keys = Object.keys(state).sort(function(a, b) {
+      return state[a].lastAlertAt - state[b].lastAlertAt;
+    });
+    for (let i = 0; i < keys.length && json.length > MAX_BYTES; i++) {
+      delete state[keys[i]];
+      json = JSON.stringify(state);
+    }
+  }
+
+  properties.setProperty(STATE_KEY, json);
 }
 
 function isAlertDue_(record, now) {
@@ -81,19 +99,19 @@ function buildReport_(messagesToNotify) {
 }
 
 function processDeletionRequests_() {
-  const properties = PropertiesService.getScriptProperties();
-  const processedReplies = JSON.parse(
-    properties.getProperty(PROCESSED_REPLIES_KEY) || '{}'
-  );
-
-  GmailApp.search('in:anywhere from:me "DELETE SPAM"').forEach(function(thread) {
+  GmailApp.search('in:inbox "DELETE SPAM"').forEach(function(thread) {
     thread.getMessages().forEach(function(message) {
-      const subject = message.getSubject().toLowerCase();
-      if (processedReplies[message.getId()] || subject.indexOf('re:') !== 0) {
+      // Skip the report itself (not a reply) - its footer text also
+      // matches "DELETE SPAM <id>" but it's the instructions, not a command.
+      if (message.getSubject() === 'Spam Report') {
         return;
       }
 
       const matches = message.getPlainBody().match(/DELETE\s+SPAM\s+([A-Za-z0-9_-]+)/gi) || [];
+      if (matches.length === 0) {
+        return;
+      }
+
       matches.forEach(function(command) {
         const messageId = command.match(/([A-Za-z0-9_-]+)$/)[1];
         try {
@@ -102,10 +120,9 @@ function processDeletionRequests_() {
         }
       });
 
-      processedReplies[message.getId()] = true;
+      // Consume the command so it isn't processed again on the next run.
+      message.moveToTrash();
     });
   });
-
-  properties.setProperty(PROCESSED_REPLIES_KEY, JSON.stringify(processedReplies));
 }
   
