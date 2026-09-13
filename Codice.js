@@ -113,7 +113,8 @@ function processDeletionRequests_() {
         return;
       }
 
-      const matches = message.getPlainBody().match(/DELETE\s+SPAM\s+([A-Za-z0-9_-]+)/gi) || [];
+      const text = message.getSubject() + '\n' + message.getPlainBody();
+      const matches = text.match(/DELETE\s+SPAM\s+([A-Za-z0-9_-]+)/gi) || [];
       console.log('Message "' + message.getSubject() + '" from ' + message.getFrom() + ': ' + matches.length + ' match(es) -> ' + JSON.stringify(matches));
       if (matches.length === 0) {
         return;
