@@ -99,7 +99,9 @@ function buildReport_(messagesToNotify) {
 }
 
 function processDeletionRequests_() {
-  const threads = GmailApp.search('in:inbox "DELETE SPAM"');
+  // This mailbox auto-archives everything, so replies never stay "in:inbox" -
+  // search everywhere except spam/trash instead.
+  const threads = GmailApp.search('"DELETE SPAM" -in:spam -in:trash');
   console.log('processDeletionRequests_: found ' + threads.length + ' thread(s)');
 
   threads.forEach(function(thread) {
