@@ -102,20 +102,19 @@ function processDeletionRequests_() {
   // This mailbox auto-archives everything, so replies never stay "in:inbox" -
   // search everywhere except spam/trash instead.
   const threads = GmailApp.search('"DELETE SPAM" -in:spam -in:trash');
-  console.log('processDeletionRequests_: found ' + threads.length + ' thread(s)');
 
   threads.forEach(function(thread) {
     thread.getMessages().forEach(function(message) {
       // Skip the report itself (not a reply) - its footer text also
       // matches "DELETE SPAM <id>" but it's the instructions, not a command.
       if (message.getSubject() === 'Spam Report') {
-        console.log('Skipping own report email (subject exactly "Spam Report")');
         return;
       }
 
+      // Check the subject too: some clients put a quick reply command there
+      // instead of (or in addition to) the body.
       const text = message.getSubject() + '\n' + message.getPlainBody();
       const matches = text.match(/DELETE\s+SPAM\s+([A-Za-z0-9_-]+)/gi) || [];
-      console.log('Message "' + message.getSubject() + '" from ' + message.getFrom() + ': ' + matches.length + ' match(es) -> ' + JSON.stringify(matches));
       if (matches.length === 0) {
         return;
       }

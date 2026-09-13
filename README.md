@@ -1,4 +1,4 @@
-# Check Spam 0.1.2
+# Check Spam 0.1.3
 
 ## Description
 
@@ -9,7 +9,7 @@ This is useful when the account is checked from another account (a shadow accoun
 
 Each spam message is reported immediately, then after 2 hours, after 3 hours, and every 4 hours thereafter. The script keeps this state in `Script Properties`.
 
-To delete a message from the original Spam folder, reply to its report with `DELETE SPAM <Message ID>`, replacing `<Message ID>` with the ID shown in the report.
+To delete a message from the original Spam folder, reply to its report with `DELETE SPAM <Message ID>` (subject or body both work), replacing `<Message ID>` with the ID shown in the report. This works even if the mailbox auto-archives incoming mail.
 
 ## How to use
 Enable GMail API Advanced services, then execute the script for the first time to confirm permissions.
